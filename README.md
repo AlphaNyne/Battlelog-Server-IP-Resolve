@@ -1,0 +1,1 @@
+# Battlelog-Server-IP-Resolve
