@@ -28,7 +28,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Battlelog Server IP Resolve")]
-[assembly: AssemblyCopyright("© I4MBPro 2017")]
+[assembly: AssemblyCopyright("© AlphaNyne 2017-2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
