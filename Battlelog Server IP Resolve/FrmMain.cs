@@ -16,6 +16,7 @@
  */
 
 using System;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,84 +26,57 @@ namespace EA.Battlelog.IPResolve
 {
   public partial class FrmMain : Form
   {
-    #region フィールド
+    private string address;
 
-    private string _address;
+    public FrmMain() =>
+      this.InitializeComponent();
 
-    private UIManager _uiManager;
-
-    #endregion
-
-    #region プロパティ
-
-    private UIManager UIManager {
-      get {
-        if (this._uiManager == null) {
-          this._uiManager = new UIManager();
-        }
-        return this._uiManager;
-      }
-      set {
-        this._uiManager = value;
-      }
-    }
-
-    #endregion
-
-    public FrmMain()
+    private async void buttonStart_Click(object sender, EventArgs e)
     {
-      InitializeComponent();
-
-      this.UIManager.AddControl(new Control[] {
-        this.buttonOK,
-        this.textBoxURL,
-        this.linkLabelCopy
-      });
-    }
-
-    private async void ButtonOK_Click(object sender, EventArgs e)
-    {
-      WriteConsole("開始します...");
-      this.UIManager.Enabled = false;
+      this.WriteConsole("開始します...");
+      this.buttonStart.Enabled = false;
+      this.textBoxUrl.Enabled = false;
       this.textBoxResult.ResetText();
 
-      var result = await Task.Run(async () => {
-        var ipaddress = "";
+      string result = await Task.Run(async () => {
+
+        string address = null;
 
         try {
-          WriteConsole("ダウンロード中...");
-          var content = await GetResponseAsync(this.textBoxURL.Text);
-          WriteConsole("応答データの長さ: " + content.Length);
-          Thread.Sleep(500);
+          this.WriteConsole("ダウンロード中...");
+          string response = await this.GetResponseAsync(this.textBoxUrl.Text);
+          this.WriteConsole("応答データの長さ: " + response.Length);
+          await Task.Delay(500);
 
-          WriteConsole("応答データをオブジェクトに変換します");
-          var doc = new HtmlAgilityPack.HtmlDocument();
-          doc.LoadHtml(content);
-          Thread.Sleep(500);
+          this.WriteConsole("応答データをオブジェクトに変換します");
+          HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
+          doc.LoadHtml(response);
+          await Task.Delay(500);
 
-          WriteConsole("属性'data-ip'を検索しています...");
-          var node = doc.GetElementbyId("server-page");
-          Thread.Sleep(500);
+          this.WriteConsole("属性'data-ip'を検索しています...");
+          HtmlAgilityPack.HtmlNode node = doc.GetElementbyId("server-page");
+          await Task.Delay(500);
 
           try {
-            ipaddress = node.Attributes["data-ip"].Value;
-            WriteConsole("見つかりました");
-            WriteConsole("IP: " + ipaddress);
+            address = node.Attributes["data-ip"].Value;
+            this.WriteConsole("見つかりました");
+            this.WriteConsole("IP : " + address);
           }
           catch {
-            ipaddress = "";
-            WriteConsole("見つかりませんでした");
+            address = "";
+            this.WriteConsole("見つかりませんでした");
           }
         }
         catch (Exception ex) {
           MessageBox.Show(ex.Message, Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
-        return ipaddress;
+
+        return address;
       });
 
-      // リセット UI
-      this._address = result;
-      this.UIManager.Enabled = true;
+      this.address = result;
+      this.buttonStart.Enabled = true;
+      this.textBoxUrl.Enabled = true;
     }
 
     private void WriteConsole(string content)
@@ -110,15 +84,16 @@ namespace EA.Battlelog.IPResolve
       this.textBoxResult.WriteLine(content + Environment.NewLine);
     }
 
-    private async Task<string> GetResponseAsync(string url)
+    private async Task<string> GetResponseAsync(string requestUri)
     {
-      if (string.IsNullOrEmpty(url)) {
-        throw new ArgumentNullException("The 'url' paramater is missing a value.");
+      if (string.IsNullOrWhiteSpace(requestUri)) {
+        throw new ArgumentNullException("requestUri: Parameter is missing a value");
       }
 
-      var http = new HttpClient();
+      HttpClient http = new HttpClient();
+
       try {
-        var response = await http.GetAsync(url, HttpCompletionOption.ResponseContentRead);
+        HttpResponseMessage response = await http.GetAsync(requestUri);
         if (response.IsSuccessStatusCode) {
           return await response.Content.ReadAsStringAsync();
         }
@@ -129,17 +104,21 @@ namespace EA.Battlelog.IPResolve
       finally {
         http.Dispose();
       }
+
       return null;
     }
 
     private void LinkLabelCopy_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
     {
       try {
-        Clipboard.SetText(this._address);
+        Clipboard.SetText(this.address);
       }
       catch {
-        MessageBox.Show("クリップボードにコピーできませんでした。", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        MessageBox.Show("クリップボードにコピーできません。", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
       }
     }
+
+    private void LinkLabelOpenBattlelog_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) =>
+      System.Diagnostics.Process.Start("http://battlelog.battlefield.com/bf4/servers/");
   }
 }

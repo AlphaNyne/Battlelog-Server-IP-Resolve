@@ -17,6 +17,7 @@
 
 using System;
 using System.Windows.Forms;
+using System.Net.NetworkInformation;
 
 namespace EA.Battlelog.IPResolve
 {
@@ -30,6 +31,12 @@ namespace EA.Battlelog.IPResolve
     {
       Application.EnableVisualStyles();
       Application.SetCompatibleTextRenderingDefault(false);
+
+      // ネットワークが利用できるかどうかを確認します。
+      if (!NetworkInterface.GetIsNetworkAvailable()) {
+        throw new NetworkInformationException();
+      }
+
       Application.Run(new FrmMain());
     }
   }
